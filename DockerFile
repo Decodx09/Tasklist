@@ -1,8 +1,18 @@
+# Use Node.js as the base image
 FROM node:18
 
+# Set the working directory
 WORKDIR /tasklist
 
+# Copy backend dependencies and install
 COPY backend/package*.json ./backend/
-RUN cd backend && npm install
+WORKDIR /tasklist/backend
+RUN npm install
 
+# Copy frontend files and backend code
+WORKDIR /tasklist
+COPY frontend ./frontend/
+COPY backend ./backend/
+
+# Set the command to start the backend server
 CMD ["node", "backend/index.js"]
