@@ -5,4 +5,4 @@ WORKDIR /app
 COPY backend/package*.json ./backend/
 RUN cd backend && npm install
 
-CMD ["node", "backend/server.js"]
+CMD ["node", "backend/index.js"]
