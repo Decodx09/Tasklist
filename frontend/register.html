@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register</title>
+</head>
+<body>
+    <h2>Register</h2>
+    <form id="register-form">
+        <label>Email:</label>
+        <input type="email" id="email" required /><br><br>
+        <label>Username:</label>
+        <input type="text" id="username" required /><br><br>
+        <label>Password:</label>
+        <input type="password" id="password" required /><br><br>
+        <button type="submit">Register</button>
+    </form>
+    <p>Already have an account? <a href="login.html">Login here</a></p>
+
+    <script>
+        document.getElementById('register-form').addEventListener('submit', async function (event) {
+            event.preventDefault();
+            const email = document.getElementById('email').value;
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+
+            const response = await fetch('http://localhost:3000/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ email, username, password }),
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                alert('Registration successful! You can now log in.');
+                window.location.href = 'login.html';  // Redirect to login page
+            } else {
+                alert(data.message || 'An error occurred');
+            }
+        });
+    </script>
+</body>
+</html>

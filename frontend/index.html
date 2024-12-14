@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task List with Edit and Add Functionality</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f8f9fa;
+        }
+        h1, h2 {
+            color: #333;
+            text-align: center;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        canvas {
+            display: block;
+            margin: 20px auto;
+            max-width: 100%;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: white;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        th, td {
+            text-align: center;
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #007BFF;
+            color: white;
+        }
+        .stats {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .stats p {
+            font-size: 1.2em;
+            margin: 10px 0;
+            color: #555;
+        }
+        .form-popup {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 10;
+            background-color: white;
+            padding: 20px;
+            border: 1px solid #ddd;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+        }
+        .form-popup input, .form-popup select {
+            width: 100%;
+            margin: 10px 0;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .form-popup button {
+            padding: 8px 12px;
+            border: none;
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .form-popup button:hover {
+            background-color: #0056b3;
+        }
+        button.edit-btn, button.add-btn {
+            padding: 8px 12px;
+            border: none;
+            background-color: #28a745;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button.edit-btn:hover, button.add-btn:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Task List with Edit and Add Functionality</h1>
+        
+        <div class="stats" id="taskStats"></div>
+        <button class="add-btn" onclick="showForm()">Add New Task</button>
+        
+        <canvas id="taskChart"></canvas>
+        <h2>All Tasks</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Task ID</th>
+                    <th>Title</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Total Time (hrs)</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="taskTable"></tbody>
+        </table>
+    </div>
+
+    <!-- Add/Edit Form -->
+    <div class="form-popup" id="taskForm">
+        <h3 id="formTitle">Add New Task</h3>
+        <input type="hidden" id="taskId" />
+        <label for="taskTitle">Title:</label>
+        <input type="text" id="taskTitle" />
+        <label for="taskPriority">Priority:</label>
+        <select id="taskPriority">
+            <option value="Low">Low</option>
+            <option value="Medium">Medium</option>
+            <option value="High">High</option>
+        </select>
+        <label for="taskStatus">Status:</label>
+        <select id="taskStatus">
+            <option value="Pending">Pending</option>
+            <option value="Finished">Finished</option>
+        </select>
+        <label for="taskTime">Total Time (hrs):</label>
+        <input type="number" id="taskTime" min="0" />
+        <button onclick="saveTask()">Save</button>
+        <button onclick="closeForm()">Cancel</button>
+    </div>
+
+    <script>
+        const apiUrl = 'http://localhost:3000/tasks';
+
+        // Fetch and display tasks
+        async function fetchTasks() {
+            const response = await fetch(apiUrl);
+            const tasks = await response.json();
+
+            const tableBody = document.getElementById('taskTable');
+            tableBody.innerHTML = '';
+
+            const statusCounts = { Pending: 0, Finished: 0 };
+            const taskTitles = [];
+            const taskTimes = [];
+            let totalCompletedTime = 0;
+
+            tasks.forEach(task => {
+                statusCounts[task.status] = (statusCounts[task.status] || 0) + 1;
+
+                if (task.status === 'Finished') {
+                    totalCompletedTime += task.total_time_hours || 0;
+                }
+
+                const row = `
+                    <tr>
+                        <td>${task.id}</td>
+                        <td>${task.title}</td>
+                        <td>${task.priority}</td>
+                        <td>${task.status}</td>
+                        <td>${task.total_time_hours || '-'}</td>
+                        <td>
+                            <button class="edit-btn" onclick="editTask(${task.id})">Edit</button>
+                        </td>
+                    </tr>
+                `;
+                tableBody.insertAdjacentHTML('beforeend', row);
+
+                taskTitles.push(task.title);
+                taskTimes.push(task.total_time_hours || 0);
+            });
+
+            const totalTasks = tasks.length;
+            const pendingPercentage = ((statusCounts.Pending / totalTasks) * 100).toFixed(2);
+            const completedPercentage = ((statusCounts.Finished / totalTasks) * 100).toFixed(2);
+            const avgCompletedTime = (statusCounts.Finished > 0
+                ? (totalCompletedTime / statusCounts.Finished).toFixed(2)
+                : 0);
+
+            document.getElementById('taskStats').innerHTML = `
+                <p><strong>Pending Percentage:</strong> ${pendingPercentage}%</p>
+                <p><strong>Completed Percentage:</strong> ${completedPercentage}%</p>
+                <p><strong>Average Completed Time:</strong> ${avgCompletedTime} hrs</p>
+                <p><strong>Total Tasks:</strong> ${totalTasks}</p>
+            `;
+
+            renderChart(taskTitles, taskTimes);
+        }
+
+        // Render the chart
+        function renderChart(taskTitles, taskTimes) {
+            const ctx = document.getElementById('taskChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: taskTitles,
+                    datasets: [{
+                        label: 'Task Completion Time (hrs)',
+                        data: taskTimes,
+                        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+                        borderColor: 'rgba(54, 162, 235, 1)',
+                        borderWidth: 1,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: { display: true, text: 'Task Completion Time per Task' },
+                    },
+                    scales: {
+                        x: { title: { display: true, text: 'Tasks' } },
+                        y: { title: { display: true, text: 'Time (hrs)' } },
+                    },
+                },
+            });
+        }
+
+        // Show the form for editing or adding a task
+        function showForm(task = null) {
+            const form = document.getElementById('taskForm');
+            form.style.display = 'block';
+            document.getElementById('formTitle').innerText = task ? 'Edit Task' : 'Add New Task';
+            document.getElementById('taskId').value = task ? task.id : '';
+            document.getElementById('taskTitle').value = task ? task.title : '';
+            document.getElementById('taskPriority').value = task ? task.priority : 'Low';
+            document.getElementById('taskStatus').value = task ? task.status : 'Pending';
+            document.getElementById('taskTime').value = task ? task.total_time_hours || 0 : 0;
+        }
+
+        // Close the form
+        function closeForm() {
+            document.getElementById('taskForm').style.display = 'none';
+        }
+
+        // Save task (Add or Edit)
+        async function saveTask() {
+            const taskId = document.getElementById('taskId').value;
+            const taskData = {
+                title: document.getElementById('taskTitle').value,
+                priority: document.getElementById('taskPriority').value,
+                status: document.getElementById('taskStatus').value,
+                total_time_hours: parseFloat(document.getElementById('taskTime').value) || 0,
+            };
+
+            if (taskId) {
+                // Edit task
+                await fetch(`${apiUrl}/${taskId}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(taskData),
+                });
+            } else {
+                // Add new task
+                await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(taskData),
+                });
+            }
+
+            closeForm();
+            fetchTasks();
+        }
+
+        // Edit a task
+        async function editTask(id) {
+            const response = await fetch(`${apiUrl}/${id}`);
+            const task = await response.json();
+            showForm(task);
+        }
+
+        // Fetch initial tasks
+        fetchTasks();
+    </script>
+</body>
+</html>

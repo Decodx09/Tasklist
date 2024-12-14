@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tasks List</title>
+</head>
+<body>
+    <h2>Tasks</h2>
+    <button id="logout-button">Logout</button>
+
+    <!-- Add Task Form -->
+    <h3>Add Task</h3>
+    <form id="add-task-form">
+        <input type="text" id="task-title" placeholder="Task Title" required />
+        <select id="task-status">
+            <option value="Pending">Pending</option>
+            <option value="In Progress">In Progress</option>
+            <option value="Completed">Completed</option>
+        </select>
+        <button type="submit">Add Task</button>
+    </form>
+
+    <h3>Your Tasks</h3>
+    <ul id="task-list"></ul>
+
+    <script>
+        // Check if the user is logged in (i.e., if the token exists)
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = 'login.html';  // Redirect to login page if not logged in
+        }
+
+        const taskList = document.getElementById('task-list');
+
+        // Fetch tasks from the backend
+        async function fetchTasks() {
+            const response = await fetch('http://localhost:3000/tasks', {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                taskList.innerHTML = data.map(task => `
+                    <li>
+                        ${task.title} - ${task.status}
+                    </li>
+                `).join('');
+            } else {
+                taskList.innerHTML = '<li>No tasks available.</li>';
+            }
+        }
+
+        // Add Task
+        const addTaskForm = document.getElementById('add-task-form');
+        addTaskForm.addEventListener('submit', async function (event) {
+            event.preventDefault();
+
+            const title = document.getElementById('task-title').value;
+            const status = document.getElementById('task-status').value;
+
+            const response = await fetch('http://localhost:3000/tasks', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({ title, status }),
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                alert(result.message || 'Task added successfully!');
+                addTaskForm.reset();
+                fetchTasks(); // Refresh the tasks list
+            } else {
+                alert('Error: ' + result.message);
+            }
+        });
+
+        // Logout functionality
+        document.getElementById('logout-button').addEventListener('click', function () {
+            localStorage.removeItem('token');
+            window.location.href = 'login.html';  // Redirect to login page
+        });
+
+        // Fetch and display tasks when the page loads
+        fetchTasks();
+    </script>
+</body>
+</html>
