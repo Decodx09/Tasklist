@@ -1,16 +1,8 @@
-# Use a Node.js image
 FROM node:18
 
-# Set working directory
 WORKDIR /app
 
-# Copy and install dependencies for backend
 COPY backend/package*.json ./backend/
 RUN cd backend && npm install
 
-# Copy and build frontend
-COPY frontend ./frontend/
-RUN cd frontend && npm install && npm run build
-
-# Set the command to run your backend server
 CMD ["node", "backend/server.js"]
