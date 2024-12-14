@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const authenticate = require('./authMiddleware'); 
 const app = express();
+const path = require('path');
 const port = 3000;
 
 app.use(express.json());
@@ -25,6 +26,12 @@ db.connect((err) => {
     return;
   }
   console.log('Connected to the database');
+});
+
+app.use(express.static(path.join(__dirname, '../frontend')));
+
+app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../frontend/index.html'));
 });
 
 app.post('/register', (req, res) => {
