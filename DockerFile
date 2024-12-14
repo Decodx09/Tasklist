@@ -1,6 +1,6 @@
 FROM node:18
 
-WORKDIR /app
+WORKDIR /tasklist
 
 COPY backend/package*.json ./backend/
 RUN cd backend && npm install
