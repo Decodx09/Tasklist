@@ -7,8 +7,7 @@ const jwt = require('jsonwebtoken');
 const authenticate = require('./authMiddleware'); 
 const app = express();
 const path = require('path');
-const port = 3000;
-
+const port = 3004;
 app.use(express.json());
 app.use(bodyParser.json());
 app.use(cors());
@@ -63,7 +62,6 @@ app.post('/login', (req, res) => {
     if (result.length === 0) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
-
     const user = result[0];
     bcrypt.compare(password, user.password, (err, isMatch) => {
       if (err) {
@@ -84,7 +82,7 @@ app.post('/tasks', authenticate, (req, res) => {
         return res.status(400).json({ error: 'All fields are required' });
     }
     const sql = `INSERT INTO tasks (title, priority, status, start_time, end_time, hours, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)`;
-    const params = [title, priority, status, start_time, end_time, hours, req.user.userId]; // Store the user's ID
+    const params = [title, priority, status, start_time, end_time, hours, req.user.userId];
     db.query(sql, params, (err, results) => {
         if (err) {
             return res.status(500).json({ error: err.message });
